@@ -79,8 +79,42 @@ app.use(bodyParser.urlencoded());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-//app.use('/', routes);
-//app.use('/users', users);
+
+//Express API routes (API RESTFULL, permet d'interragir avec MongoDB en fonction des url passées)
+	//Tous les shows par genre, par charactère, les 12 meilleurs.
+app.get('/api/shows', function(req, res, next) {
+  var query = Show.find();
+  if (req.query.genre) {
+    query.where({ genre: req.query.genre });
+  } else if (req.query.alphabet) {
+    query.where({ name: new RegExp('^' + '[' + req.query.alphabet + ']', 'i') });
+  } else {
+    query.limit(12);
+  }
+  query.exec(function(err, shows) {
+    if (err) return next(err);
+    res.send(shows);
+  });
+});
+
+	//Le show avec ID = id
+app.get('/api/shows/:id', function(req, res, next) {
+  Show.findById(req.params.id, function(err, show) {
+    if (err) return next(err);
+    res.send(show);
+  });
+});
+
+	//Permet de réécrire correctement l'URL. 
+app.get('*', function(req, res) {
+  res.redirect('/#' + req.originalUrl);
+});
+
+//Lorsque qu'une erreur survient, un msg dans la console est affichée et une erreur est envoyée à l'app au format JSON
+app.use(function(err, req, res, next) {
+  console.error(err.stack);
+  res.send(500, { message: err.message });
+});
 
 app.listen(app.get('port'), function() {
 	console.log('Express server listening on port ' + app.get('port'));
